@@ -1,13 +1,14 @@
 from datetime import datetime
-from pydantic import BaseModel, HttpUrl, Field
+from pydantic import BaseModel, ConfigDict, HttpUrl, Field
 class Article(BaseModel):
-    url: HttpUrl
+    model_config = ConfigDict(validate_assignment=True)
+    url: HttpUrl 
     url_hash: str
     title: str
+    source: str
     author: str | None = None
     content: str
     category: str | None = None
-    source: str
     published_at: datetime | None = None
     crawled_at: datetime
 class ArticleEnrichment(BaseModel):

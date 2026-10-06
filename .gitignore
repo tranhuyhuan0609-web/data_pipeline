@@ -3,6 +3,9 @@ __pycache__/
 *.pyc
 
 .env
+.env.dev
+.env.test
+.env.prod
 
 .pytest_cache/
 .coverage
