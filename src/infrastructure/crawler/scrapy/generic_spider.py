@@ -1,9 +1,11 @@
+from zoneinfo import ZoneInfo
+
+from pydantic_core import ValidationError
 import scrapy
 from datetime import datetime, timezone
 from src.domain.services.url_hash import create_url_hash
 from src.domain.entities.article import Article
 from src.domain.services.date_parse import normalize_published_at
-pages_crawled = 0
 class GenericSpider(scrapy.Spider):
     name = "generic_spider"
     allowed_domains = []
@@ -15,6 +17,7 @@ class GenericSpider(scrapy.Spider):
         self.start_urls = [str(url) for url in crawler_config.start_urls]
         self.pages_crawled = 0
         self.pages_scheduled = len(self.start_urls)
+        self.scheduled_urls = set(self.start_urls)
     def extract_content(self, response)-> str:
         content_list = response.css(self.crawler_config.selectors.content).getall()
         content = " ".join(content.strip() for content in content_list if content.strip())
@@ -46,7 +49,8 @@ class GenericSpider(scrapy.Spider):
     
     def extract_published_at(self, response) -> datetime | None:
         published_at_str = response.css(self.crawler_config.selectors.published_at).get() if self.crawler_config.selectors.published_at else None
-        return normalize_published_at(published_at_str)
+        return normalize_published_at(published_at_str, 
+                                      source_timezone=ZoneInfo(self.crawler_config.source_timezone))
     def parse(self, response):
         self.pages_crawled += 1
         title = self.extract_title(response)
@@ -71,8 +75,11 @@ class GenericSpider(scrapy.Spider):
         if not title or not content:
             self.logger.warning(f"Missing title or content for URL: {url}. Skipping article.")
         else: 
-            article = Article(**article_data)
-            yield article.model_dump(mode="json")
+            try:
+                article = Article(**article_data)
+                yield article.model_dump(mode="json")
+            except ValidationError as e:
+                self.logger.warning(f"Validation error for URL: {url}. Error: {e}. Skipping article.")
         max_pages = self.crawler_config.pagination.max_pages
         if (
             self.crawler_config.pagination.enabled
@@ -83,9 +90,19 @@ class GenericSpider(scrapy.Spider):
         ):
             next_page = response.css(self.crawler_config.pagination.next_page).get() if self.crawler_config.pagination.next_page else None
             if next_page:
-                next_request = response.follow(
+                next_page = response.urljoin(next_page)
+                if next_page not in self.scheduled_urls:
+                    self.scheduled_urls.add(next_page)
+                    next_request = response.follow(
                     next_page,
                     callback=self.parse
                 )
-                self.pages_scheduled += 1
-                yield next_request
+                    self.pages_scheduled += 1
+                    yield next_request
+                else:
+                    self.logger.warning(f"Next page URL already scheduled: {next_page}. Skipping.")
+        else:
+            if not self.crawler_config.pagination.enabled:
+                self.logger.info("Pagination is disabled. No further pages will be scheduled.")
+            elif max_pages is not None and self.pages_scheduled >= max_pages:
+                self.logger.info(f"Reached maximum number of pages to crawl: {max_pages}. No further pages will be scheduled.")

@@ -29,9 +29,8 @@ def test_pages_scheduled_limit(config):
     )
     results = list(spider.parse(response_page_1))
     requested = [result for result in results if isinstance(result, Request)]
-    assert spider.pages_scheduled == 3
-    assert len(requested) == 1
-    assert requested[0].url == "https://example.com/page2"
+    assert spider.pages_scheduled == 2
+    assert len(requested) == 0
     html_page_2 = """
         <html>
             <body>
@@ -50,6 +49,5 @@ def test_pages_scheduled_limit(config):
     results = list(spider.parse(response_page_2))
     assert spider.pages_scheduled == 3
     requested = [result for result in results if isinstance(result, Request)]
-    assert len(requested) == 0
-    assert len(results) == 1
-    assert not any(isinstance(result, Request) for result in results)
+    assert len(requested) == 1
+    assert len(results) == 2

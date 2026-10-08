@@ -1,11 +1,11 @@
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 from scrapy import signals
 
 from src.infrastructure.crawler.scrapy.crawler_orchestrator import CrawlerOrchestrator
 
 
-def test_disconnect_before_callback():
+async def test_disconnect_before_callback():
     target = "src.infrastructure.crawler.scrapy.crawler_orchestrator.dispatcher"
 
     call_order = []
@@ -28,7 +28,7 @@ def test_disconnect_before_callback():
             config_A = Mock()
             crawler_A = Mock()
 
-            repository.get_enabled_configs.return_value = [config_A]
+            repository.get_enabled_configs = AsyncMock(return_value=[config_A])
             crawler_factory.create_crawler.return_value = crawler_A
 
             orchestrator = CrawlerOrchestrator(
@@ -38,7 +38,7 @@ def test_disconnect_before_callback():
                 on_all_jobs_finished,
             )
 
-            orchestrator.schedule()
+            await orchestrator.schedule()
 
             orchestrator.handle_spider_closed(
                 crawler_A,

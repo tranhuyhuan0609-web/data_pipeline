@@ -1,6 +1,6 @@
 from src.infrastructure.crawler.scrapy.crawler_orchestrator import CrawlerOrchestrator
-from unittest.mock import Mock
-def test_crawler_runner_crawl_error():
+from unittest.mock import AsyncMock, Mock
+async def test_crawler_runner_crawl_error():
     repository = Mock()
     crawler_factory = Mock()
     crawler_runner = Mock()
@@ -10,18 +10,18 @@ def test_crawler_runner_crawl_error():
         None,
     ]
     on_all_jobs_finished = Mock()
-    repository.get_enabled_configs.return_value = [
+    repository.get_enabled_configs = AsyncMock(return_value=[
         config_A := Mock(),
         config_B := Mock(),
         config_C := Mock(),
-    ]
+    ])
     crawler_factory.create_crawler.side_effect = [
         crawler_A := Mock(),
         crawler_B := Mock(),
         crawler_C := Mock(),
     ]
     orchestrator = CrawlerOrchestrator(repository, crawler_factory, crawler_runner, on_all_jobs_finished)
-    orchestrator.schedule()
+    await orchestrator.schedule()
     assert orchestrator.total_jobs == 3
     assert orchestrator.terminal_jobs == 1
     assert orchestrator.list_of_spiders == {crawler_A, crawler_C}

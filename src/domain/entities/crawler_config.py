@@ -1,5 +1,7 @@
 
-from pydantic import BaseModel , Field, HttpUrl , model_validator
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
+from pydantic import BaseModel , Field, HttpUrl, field_validator , model_validator
 class Selectors(BaseModel):
     title: str = Field(...)
     author: str | None = None
@@ -48,6 +50,17 @@ class CrawlerConfig(BaseModel):
     selectors: Selectors
     pagination: Pagination
     crawler_settings: CrawlerSettings
+    source_timezone: str = Field(default="UTC")
+    @field_validator("source_timezone")
+    @classmethod
+    def validate_source_timezone(cls, value: str) -> str:
+        try:
+            ZoneInfo(value)
+        except ZoneInfoNotFoundError:
+            raise ValueError(
+            f"Invalid source timezone: {value}"
+        )
+        return value
     @model_validator(mode="after")
     def validation_start_urls(self):
         if self.pagination.max_pages is not None:

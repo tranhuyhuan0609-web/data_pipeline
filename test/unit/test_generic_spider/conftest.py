@@ -24,6 +24,7 @@ def config(request):
     title = override.get('title', 'h1.title')
     content = override.get('content', 'div.content')
     next_page = override.get('next_page', 'a.next')
+    publish_at = override.get('publish_at', 'span.publish-date')
     return CrawlerConfig(
         site_id=site_id,
         name=name,
@@ -33,7 +34,8 @@ def config(request):
         allowed_domains=allowed_domains,
         selectors=Selectors(
             title=title,
-            content=content
+            content=content,
+            publish_at=publish_at,
         ),
         pagination=Pagination(
             enabled=pagination_enabled,

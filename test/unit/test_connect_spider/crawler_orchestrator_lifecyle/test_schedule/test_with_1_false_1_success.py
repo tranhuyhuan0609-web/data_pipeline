@@ -1,10 +1,11 @@
+from unittest.mock import Mock, AsyncMock
+
 from src.infrastructure.crawler.scrapy.crawler_orchestrator import (
     CrawlerOrchestrator,
 )
-from unittest.mock import Mock, AsyncMock
 
 
-async def test_schedule_with_2_enabled_configs():
+async def test_schedule_with_1_build_failure_and_1_success():
     repository = Mock()
     crawler_factory = Mock()
     crawler_runner = Mock()
@@ -12,16 +13,17 @@ async def test_schedule_with_2_enabled_configs():
 
     config_A = Mock()
     config_B = Mock()
-
-    crawler_A = Mock()
     crawler_B = Mock()
 
     repository.get_enabled_configs = AsyncMock(
-        return_value=[config_A, config_B]
+        return_value=[
+            config_A,
+            config_B,
+        ]
     )
 
     crawler_factory.create_crawler.side_effect = [
-        crawler_A,
+        Exception("Failed to create crawler"),
         crawler_B,
     ]
 
@@ -34,24 +36,14 @@ async def test_schedule_with_2_enabled_configs():
 
     await orchestrator.schedule()
 
-    assert orchestrator.total_jobs == 2
+    assert orchestrator.build_failed == 1
+    assert orchestrator.total_jobs == 1
     assert orchestrator.terminal_jobs == 0
-    assert orchestrator.failed_jobs == 0
-    assert orchestrator.list_of_spiders == {
-        crawler_A,
-        crawler_B,
-    }
 
-    assert crawler_runner.crawl.call_count == 2
+    repository.get_enabled_configs.assert_awaited_once_with()
 
-    crawler_runner.crawl.assert_any_call(
-        crawler_A,
-        crawler_config=config_A,
-    )
+    crawler_runner.crawl.assert_called_once()
 
-    crawler_runner.crawl.assert_any_call(
-        crawler_B,
-        crawler_config=config_B,
-    )
+    assert crawler_B in orchestrator.list_of_spiders
 
     on_all_jobs_finished.assert_not_called()

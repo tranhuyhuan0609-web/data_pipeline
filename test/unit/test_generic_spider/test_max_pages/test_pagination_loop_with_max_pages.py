@@ -49,22 +49,7 @@ def test_spider_pagination_loop_with_max_pages(config):
         request=request_page_2,
     )
     results_page_2 = list(spider.parse(response_page_2))
-    assert len(results_page_2) == 2
+    assert len(results_page_2) == 1
     assert isinstance(results_page_2[0], dict)
-    assert isinstance(results_page_2[1], Request)
-    request_page_3 = results_page_2[1]
-    response_page_3 = HtmlResponse(
-        url="https://example.com/page1",
-        body=html_page_1,
-        encoding="utf-8",
-        request=request_page_3,
-    )
-    results_page_3 = list(spider.parse(response_page_3))
-    assert len(results_page_3) == 1
-    assert isinstance(results_page_3[0], dict)
-    assert spider.pages_crawled == 3
-    assert not any(
-    isinstance(result, Request)
-    for result in results_page_3
-)
+   
       

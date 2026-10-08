@@ -1,6 +1,6 @@
 from src.infrastructure.crawler.scrapy.crawler_orchestrator import CrawlerOrchestrator
 from unittest.mock import Mock
-def test_handle_crawler_closed():
+async def test_handle_crawler_closed():
     repository = Mock()
     crawler_factory = Mock()
     on_all_jobs_finished = Mock()

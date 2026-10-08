@@ -1,15 +1,15 @@
 from src.infrastructure.crawler.scrapy.crawler_orchestrator import CrawlerOrchestrator
-from unittest.mock import Mock
-def test_crawler_runner_crawl_not_crash_on_error():
+from unittest.mock import AsyncMock, Mock
+async def test_crawler_runner_crawl_not_crash_on_error():
     repository = Mock()
     crawler_factory = Mock()
     crawler_runner = Mock()
     on_all_jobs_finished = Mock()
-    repository.get_enabled_configs.return_value = [
+    repository.get_enabled_configs = AsyncMock(return_value=[
         config_A := Mock(),
         config_B := Mock(),
         config_C := Mock(),
-    ]
+    ])
     crawler_runner.crawl.side_effect = [
         None,
         Exception("Crawl error"),
@@ -21,7 +21,7 @@ def test_crawler_runner_crawl_not_crash_on_error():
         crawler_B := Mock(),
         crawler_C := Mock(),
     ]
-    orchestrator.schedule()
+    await orchestrator.schedule()
     assert orchestrator.terminal_jobs == 1
     assert orchestrator.failed_jobs == 1
     assert crawler_runner.crawl.call_count == 3
